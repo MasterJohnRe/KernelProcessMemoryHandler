@@ -1,2 +1,2 @@
-# KernelWriteProcessMemory
-kernel driver which supplies methods to writing to memory
+# KernelProcessMemoryHandler
+kernel driver which supplies methods to handling memory
