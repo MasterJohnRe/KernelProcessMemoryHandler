@@ -158,11 +158,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Memory.cpp" />
-    <ClCompile Include="WriteProcessMemory.cpp" />
+    <ClCompile Include="ProcessMemoryHandler.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Memory.h" />
-    <ClInclude Include="WriteProcessMemoryCommon.h" />
+    <ClInclude Include="ProcessMemoryHandlerCommon.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
