@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Memory.h"
-#include "WriteProcessMemoryCommon.h"
+#include "ProcessMemoryHandlerCommon.h"
 
 
 NTSTATUS CompleteIrp(PIRP Irp, NTSTATUS status = STATUS_SUCCESS, ULONG_PTR info = 0)
@@ -12,7 +12,7 @@ NTSTATUS CompleteIrp(PIRP Irp, NTSTATUS status = STATUS_SUCCESS, ULONG_PTR info 
 	return status;
 }
 
-NTSTATUS WriteProcessMemoryCreateClose(PDEVICE_OBJECT deviceObject, PIRP irp) {
+NTSTATUS ProcessMemoryHandlerCreateClose(PDEVICE_OBJECT deviceObject, PIRP irp) {
 	UNREFERENCED_PARAMETER(deviceObject);
 	return CompleteIrp(irp);
 }
@@ -48,10 +48,10 @@ NTSTATUS ChangeMemoryProtection(
 }
 
 
-NTSTATUS WriteProcessMemoryWrite(PDEVICE_OBJECT deviceObject, PIRP irp) {
+NTSTATUS ProcessMemoryHandlerWrite(PDEVICE_OBJECT deviceObject, PIRP irp) {
 
 	UNREFERENCED_PARAMETER(deviceObject);
-	KdPrint(("WriteProcessMemory Write dispatch routine invoked\n"));
+	KdPrint(("ProcessMemoryHandler Write dispatch routine invoked\n"));
 	auto stack = IoGetCurrentIrpStackLocation(irp);
 	auto writeBufferLength = stack->Parameters.Write.Length;
 	if (writeBufferLength < sizeof(WRITE_REQUEST)) {
@@ -88,24 +88,24 @@ NTSTATUS WriteProcessMemoryWrite(PDEVICE_OBJECT deviceObject, PIRP irp) {
 
 
 
-void WriteProcessMemoryUnload(__in PDRIVER_OBJECT driverObject) {
-	UNICODE_STRING symLink = RTL_CONSTANT_STRING(L"\\??\\WriteProcessMemory");
+void ProcessMemoryHandlerUnload(__in PDRIVER_OBJECT driverObject) {
+	UNICODE_STRING symLink = RTL_CONSTANT_STRING(L"\\??\\ProcessMemoryHandler");
 	IoDeleteSymbolicLink(&symLink);
 	IoDeleteDevice(driverObject->DeviceObject);
-	KdPrint(("WriteProcessMemory driver unload called\n"));
+	KdPrint(("ProcessMemoryHandler driver unload called\n"));
 }
 
 
 extern "C" NTSTATUS DriverEntry(__in PDRIVER_OBJECT driverObject, __in PUNICODE_STRING registryPath) {
 	UNREFERENCED_PARAMETER(registryPath);
-	driverObject->DriverUnload = WriteProcessMemoryUnload;
-	KdPrint(("WriteProcessMemory driver initialized successfully\n"));
+	driverObject->DriverUnload = ProcessMemoryHandlerUnload;
+	KdPrint(("ProcessMemoryHandler driver initialized successfully\n"));
 
-	driverObject->MajorFunction[IRP_MJ_CREATE] = driverObject->MajorFunction[IRP_MJ_CLOSE] = WriteProcessMemoryCreateClose;
-	driverObject->MajorFunction[IRP_MJ_WRITE] = WriteProcessMemoryWrite;
+	driverObject->MajorFunction[IRP_MJ_CREATE] = driverObject->MajorFunction[IRP_MJ_CLOSE] = ProcessMemoryHandlerCreateClose;
+	driverObject->MajorFunction[IRP_MJ_WRITE] = ProcessMemoryHandlerWrite;
 
-	UNICODE_STRING devName = RTL_CONSTANT_STRING(L"\\DEVICE\\WriteProcessMemory");
-	UNICODE_STRING symLink = RTL_CONSTANT_STRING(L"\\??\\WriteProcessMemory");
+	UNICODE_STRING devName = RTL_CONSTANT_STRING(L"\\DEVICE\\ProcessMemoryHandler");
+	UNICODE_STRING symLink = RTL_CONSTANT_STRING(L"\\??\\ProcessMemoryHandler");
 	bool symLinkCreated = false;
 	PDEVICE_OBJECT deviceObject = nullptr;
 	auto status = STATUS_SUCCESS;

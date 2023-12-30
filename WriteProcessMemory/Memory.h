@@ -13,9 +13,6 @@ extern "C" NTSTATUS NTAPI MmCopyVirtualMemory
 );
 
 extern "C" NTSTATUS NTAPI ZwProtectVirtualMemory(
-
-
-
 	IN HANDLE               ProcessHandle,
 	IN OUT PVOID 			*BaseAddress,
 	IN OUT PULONG           NumberOfBytesToProtect,
@@ -23,3 +20,5 @@ extern "C" NTSTATUS NTAPI ZwProtectVirtualMemory(
 	OUT PULONG              OldAccessProtection);
 
 NTSTATUS KernelWriteVirtualMemory(PEPROCESS process, PVOID sourceAddress, PVOID targetAddress, SIZE_T size);
+
+NTSTATUS KernelReadVirtualMemory(PEPROCESS process, PVOID sourceAddress, PVOID targetAddress, SIZE_T size);
