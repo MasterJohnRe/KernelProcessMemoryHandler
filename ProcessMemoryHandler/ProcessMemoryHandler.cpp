@@ -160,6 +160,7 @@ extern "C" NTSTATUS DriverEntry(__in PDRIVER_OBJECT driverObject, __in PUNICODE_
 	driverObject->MajorFunction[IRP_MJ_CREATE] = driverObject->MajorFunction[IRP_MJ_CLOSE] = ProcessMemoryHandlerCreateClose;
 	driverObject->MajorFunction[IRP_MJ_WRITE] = ProcessMemoryHandlerWrite;
 	driverObject->MajorFunction[IRP_MJ_READ] = ProcessMemoryHandlerRead;
+	driverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = IoControl;
 
 	UNICODE_STRING devName = RTL_CONSTANT_STRING(L"\\DEVICE\\ProcessMemoryHandler");
 	UNICODE_STRING symLink = RTL_CONSTANT_STRING(L"\\??\\ProcessMemoryHandler");
