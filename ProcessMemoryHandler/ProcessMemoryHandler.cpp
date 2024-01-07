@@ -86,6 +86,62 @@ NTSTATUS ProcessMemoryHandlerWrite(PDEVICE_OBJECT deviceObject, PIRP irp) {
 	return CompleteIrp(irp, STATUS_SUCCESS, size);
 }
 
+NTSTATUS ProcessMemoryHandlerRead(PDEVICE_OBJECT deviceObject, PIRP irp) {
+	UNREFERENCED_PARAMETER(deviceObject);
+	KdPrint(("ProcessMemoryHandler Read dispatch routine invoked\n"));
+	auto stack = IoGetCurrentIrpStackLocation(irp);
+	auto readBufferLength = stack->Parameters.Read.Length;
+	if (readBufferLength < sizeof(IO_REQUEST)) {
+		return CompleteIrp(irp, STATUS_INVALID_BUFFER_SIZE);
+	}
+	PIO_REQUEST readRequest = (PIO_REQUEST)irp->AssociatedIrp.SystemBuffer;
+	// Extract parameters from the structure	
+	PEPROCESS process;
+	if (!NT_SUCCESS(PsLookupProcessByProcessId((HANDLE)readRequest->ProcessId, &process)))
+	{
+		return CompleteIrp(irp, STATUS_INVALID_ADDRESS); //TODO: change to different invalid status
+	}
+
+	PVOID baseAddress = reinterpret_cast<PVOID>(readRequest->BaseAddress);
+	SIZE_T size = readRequest->Size;
+	PVOID userBuffer = readRequest->Buffer;
+	KdPrint(("ProcessId: %lu, BaseAddress: %p, Size: %u, Data: %p\n", readRequest->ProcessId, baseAddress, (unsigned  int)size, userBuffer));
+	NTSTATUS isReadSucceeded = KernelReadVirtualMemory(process, baseAddress, userBuffer, size);
+	if (isReadSucceeded) {
+		KdPrint(("isReadSucceeded: %08x\n", isReadSucceeded));
+	}
+	return CompleteIrp(irp, STATUS_SUCCESS, size);
+
+}
+
+NTSTATUS IoControl(PDEVICE_OBJECT deviceObject, PIRP irp) {
+	UNREFERENCED_PARAMETER(deviceObject);
+	NTSTATUS status = STATUS_UNSUCCESSFUL;
+	ULONG byteIO = 0;
+	auto stack = IoGetCurrentIrpStackLocation(irp);
+	ULONG controlCode = stack->Parameters.DeviceIoControl.IoControlCode;
+	if (controlCode == IO_READ_REQUEST) {
+		KdPrint(("ProcessMemoryHandler Read invoked\n"));
+		auto readBufferLength = stack->Parameters.Read.Length;
+		if (readBufferLength < sizeof(IO_REQUEST)) {
+			return CompleteIrp(irp, STATUS_INVALID_BUFFER_SIZE);
+		}
+		PIO_REQUEST readRequest = (PIO_REQUEST)irp->AssociatedIrp.SystemBuffer;
+		// Extract parameters from the structure	
+		PEPROCESS process;
+		if (!NT_SUCCESS(PsLookupProcessByProcessId((HANDLE)readRequest->ProcessId, &process)))
+		{
+			return CompleteIrp(irp, STATUS_INVALID_ADDRESS); //TODO: change to different invalid status
+		}
+		KdPrint(("ProcessId: %lu, BaseAddress: %p, Size: %u, Data: %p\n", readRequest->ProcessId, readRequest->BaseAddress, (unsigned int)readRequest->Size, readRequest->Buffer));
+		NTSTATUS isReadSucceeded = KernelReadVirtualMemory(process, (PVOID)readRequest->BaseAddress, readRequest->Buffer, readRequest->Size);
+		if (isReadSucceeded) {
+			KdPrint(("isReadSucceeded: %08x\n", isReadSucceeded));
+		}
+		return CompleteIrp(irp, STATUS_SUCCESS, readRequest->Size);
+	}
+	return CompleteIrp(irp, status, byteIO);
+}
 
 
 void ProcessMemoryHandlerUnload(__in PDRIVER_OBJECT driverObject) {
@@ -103,6 +159,7 @@ extern "C" NTSTATUS DriverEntry(__in PDRIVER_OBJECT driverObject, __in PUNICODE_
 
 	driverObject->MajorFunction[IRP_MJ_CREATE] = driverObject->MajorFunction[IRP_MJ_CLOSE] = ProcessMemoryHandlerCreateClose;
 	driverObject->MajorFunction[IRP_MJ_WRITE] = ProcessMemoryHandlerWrite;
+	driverObject->MajorFunction[IRP_MJ_READ] = ProcessMemoryHandlerRead;
 
 	UNICODE_STRING devName = RTL_CONSTANT_STRING(L"\\DEVICE\\ProcessMemoryHandler");
 	UNICODE_STRING symLink = RTL_CONSTANT_STRING(L"\\??\\ProcessMemoryHandler");
